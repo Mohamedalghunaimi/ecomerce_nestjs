@@ -44,12 +44,14 @@ export class UserService {
         const domain = process.env.domain 
         const link = `${domain}/verify?token=${verifyToken}`
         await this.mailService.sendVerificationToEmail(email,link)
+        const salt2 = await bcrypt.genSalt(10);
+        const hashedVerifyToken = await bcrypt.hash(verifyToken,salt2);
         await this.prisma.user.create({
             data:{
                 name,
                 password:hashedPassword,
                 email,
-                verifyToken
+                verifyToken:hashedVerifyToken
             }
         })
         return {
@@ -111,12 +113,14 @@ export class UserService {
         if(!user.isverified) {
                 const verifyToken = await this.jwt.signAsync({email:user.email,type: 'email_verification',},{expiresIn:"15m"})
                 const domain = process.env.domain;
-                const link = `${domain}/verify?token=${verifyToken}`
-                await this.mailService.sendVerificationToEmail(user.email,link)
+                const link = `${domain}/verify?token=${verifyToken}`;
+                await this.mailService.sendVerificationToEmail(user.email,link);
+                const salt = await bcrypt.genSalt(10);
+                const hashedVerifyToken = await bcrypt.hash(verifyToken,salt);
                 await this.prisma.user.update({
                     where:{email:user.email},
                     data:{
-                        verifyToken
+                        verifyToken:hashedVerifyToken
                     }
                 })
             
